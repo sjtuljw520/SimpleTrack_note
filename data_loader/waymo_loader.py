@@ -60,6 +60,8 @@ class WaymoLoader:
         result['pc'] = None
         if self.use_pc:
             pc = self.pcs[str(self.cur_frame)]
+            # print(pc.shape)
+            # print(pc[:3,:])
             result['pc'] = utils.pc2world(result['ego'], pc)
         
         result['aux_info'] = {'is_key_frame': True}
@@ -76,6 +78,8 @@ class WaymoLoader:
             result['dets'], result['det_types'], result['aux_info']['velos'] = \
                 self.frame_nms(result['dets'], result['det_types'], result['aux_info']['velos'], self.nms_thres)
         result['dets'] = [BBox.bbox2array(d) for d in result['dets']]
+        #print(np.ndarray(shape=(1,3), buffer=np.array([0,0,0]), dtype=float))
+        result['vc'] = utils.pc2world(result['ego'], np.ndarray(shape=(1,3), buffer=np.array([0,0,0]), dtype=float))
 
         self.cur_frame += 1
         return result

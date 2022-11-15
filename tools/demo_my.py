@@ -46,26 +46,28 @@ def gt_bbox2world(bboxes, egos):
     return bboxes
 
 
-def frame_visualization(bboxes, ids, states, gt_bboxes=None, gt_ids=None, pc=None, dets=None, name=''):
-    visualizer = visualization.Visualizer2D(name=name, figsize=(12, 12))
+def frame_visualization(bboxes, ids, states, gt_bboxes=None, gt_ids=None, pc=None, dets=None, name='', img_folder='', vc=None):
+    visualizer = visualization.Visualizer2D(name=name, figsize=(12, 12), vc=vc)
     if pc is not None:
         visualizer.handler_pc(pc)
     for _, bbox in enumerate(gt_bboxes):
-        visualizer.handler_box(bbox, message='', color='black')
-    dets = [d for d in dets if d.s >= 0.1]
-    for det in dets:
-        visualizer.handler_box(det, message='%.2f' % det.s, color='green', linestyle='dashed')
+        visualizer.handler_box_gt(bbox, message='', color='black')
+    # dets = [d for d in dets if d.s >= 0.1]
+    # for det in dets:
+    #     visualizer.handler_box(det, message='%.2f' % det.s, color='green', linestyle='dashed')
     for _, (bbox, id, state) in enumerate(zip(bboxes, ids, states)):
         if Validity.valid(state):
-            visualizer.handler_box(bbox, message=str(id), color='red')
+            visualizer.handler_box(bbox, message=str(id), color_id=id)
         else:
-            visualizer.handler_box(bbox, message=str(id), color='light_blue')
+            # visualizer.handler_box(bbox, message=str(id), color='light_blue')
+            visualizer.handler_box(bbox, message=str(id), color_id=id)
     #visualizer.show()
-    visualizer.save('imgs/{:}.png'.format(name))
+    os.makedirs(img_folder, exist_ok=True)
+    visualizer.save(os.path.join(img_folder,'{:}.png'.format(name)))
     visualizer.close()
 
 
-def sequence_mot(configs, data_loader: WaymoLoader, sequence_id, gt_bboxes=None, gt_ids=None, visualize=False):
+def sequence_mot(configs, data_loader: WaymoLoader, sequence_id, gt_bboxes=None, gt_ids=None, visualize=False, img_folder=''):
     tracker = MOTModel(configs)
     frame_num = len(data_loader)
     IDs, bboxes, states, types = list(), list(), list(), list()
@@ -75,7 +77,7 @@ def sequence_mot(configs, data_loader: WaymoLoader, sequence_id, gt_bboxes=None,
         # input data
         frame_data = next(data_loader)
         frame_data = FrameData(dets=frame_data['dets'], ego=frame_data['ego'], pc=frame_data['pc'], 
-            det_types=frame_data['det_types'], aux_info=frame_data['aux_info'], time_stamp=frame_data['time_stamp'])
+            det_types=frame_data['det_types'], aux_info=frame_data['aux_info'], time_stamp=frame_data['time_stamp'], vc=frame_data['vc'])
 
         # mot
         results = tracker.frame_mot(frame_data)
@@ -87,7 +89,7 @@ def sequence_mot(configs, data_loader: WaymoLoader, sequence_id, gt_bboxes=None,
         # visualization
         if visualize:
             frame_visualization(result_pred_bboxes, result_pred_ids, result_pred_states,
-                gt_bboxes[frame_index], gt_ids[frame_index], frame_data.pc, dets=frame_data.dets, name='{:}_{:}_{:}'.format(args.name, sequence_id, frame_index))
+                gt_bboxes[frame_index], gt_ids[frame_index], frame_data.pc, dets=frame_data.dets, name='{:}'.format(frame_index), img_folder=img_folder, vc=frame_data.vc)
         
         # wrap for output
         IDs.append(result_pred_ids)
@@ -100,6 +102,7 @@ def sequence_mot(configs, data_loader: WaymoLoader, sequence_id, gt_bboxes=None,
 
 def main(name, obj_type, config_path, data_folder, det_data_folder, result_folder, gt_folder, start_frame=0, token=0, process=1):
     summary_folder = os.path.join(result_folder, 'summary', obj_type)
+    img_folder = os.path.join(result_folder, 'imgs', obj_type)
     # simply knowing about all the segments
     file_names = sorted(os.listdir(os.path.join(data_folder, 'ego_info')))
     print(file_names[0])
@@ -122,7 +125,7 @@ def main(name, obj_type, config_path, data_folder, det_data_folder, result_folde
         gt_bboxes, gt_ids = load_gt_bboxes(gt_folder, data_folder, segment_name, type_token)
 
         # real mot happens here
-        ids, bboxes, states, types = sequence_mot(configs, data_loader, file_index, gt_bboxes, gt_ids, args.visualize)
+        ids, bboxes, states, types = sequence_mot(configs, data_loader, file_index, gt_bboxes, gt_ids, args.visualize, img_folder)
         np.savez_compressed(os.path.join(summary_folder, '{}.npz'.format(segment_name)),
             ids=ids, bboxes=bboxes, states=states)
 
