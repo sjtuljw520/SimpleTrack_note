@@ -60,7 +60,12 @@ class MOTModel:
     
         if 'kf' in self.motion_model:
             matched, unmatched_dets, unmatched_trks = self.forward_step_trk(input_data)
-        
+            
+        # match_dets = []
+        # for ele in matched:
+        #     match_dets.append(ele[0])
+        # dets_unused = match_dets + unmatched_dets
+
         time_lag = input_data.time_stamp - self.time_stamp
         # update the matched tracks
         for t, trk in enumerate(self.trackers):

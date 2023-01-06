@@ -2,7 +2,7 @@
 """
 
 import numpy as np
-from ..data_protos import BBox
+from mot_3d.data_protos import BBox
 from filterpy.kalman import KalmanFilter
 
 
@@ -13,6 +13,7 @@ class KalmanFilterMotionModel:
         self.latest_time_stamp = time_stamp
         # define constant velocity model
         self.score = bbox.s
+        # self.raw_id = bbox.index
         self.inst_type = inst_type
 
         self.kf = KalmanFilter(dim_x=10, dim_z=7) 
@@ -121,7 +122,7 @@ class KalmanFilterMotionModel:
             self.score = det_bbox.s
         
         cur_bbox = self.kf.x[:7].reshape(-1).tolist()
-        cur_bbox = BBox.array2bbox(cur_bbox + [self.score])
+        cur_bbox = BBox.array2bbox(cur_bbox + [self.score, det_bbox.index])
         self.history[-1] = cur_bbox
         return
 

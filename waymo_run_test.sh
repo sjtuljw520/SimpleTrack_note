@@ -5,7 +5,7 @@ proc_num=$4
 
 # for vehicle
 python tools/main_waymo_test.py \
-    --name st_pvrcnnpp \
+    --name st_mppnet \
     --det_name ${det_name} \
     --obj_type vehicle \
     --config_path configs/waymo_configs/vc_kf_giou_nopc.yaml \
@@ -15,7 +15,7 @@ python tools/main_waymo_test.py \
 
 # for pedestrian
 python tools/main_waymo_test.py \
-    --name st_pvrcnnpp \
+    --name st_mppnet \
     --det_name ${det_name} \
     --obj_type pedestrian \
     --config_path configs/waymo_configs/pd_kf_giou_nopc.yaml \
@@ -25,7 +25,7 @@ python tools/main_waymo_test.py \
 
 # for cyclist
 python tools/main_waymo_test.py \
-    --name st_pvrcnnpp \
+    --name st_mppnet \
     --det_name ${det_name} \
     --obj_type cyclist \
     --config_path configs/waymo_configs/cc_kf_giou_nopc.yaml \

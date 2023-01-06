@@ -1,10 +1,10 @@
 import numpy as np
+
 from .. import motion_model
 from .. import life as life_manager
 from ..update_info_data import UpdateInfoData
 from ..frame_data import FrameData
 from ..data_protos import BBox
-
 
 class Tracklet:
     def __init__(self, configs, id, bbox: BBox, det_type, frame_index, time_stamp=None, aux_info=None):
@@ -27,6 +27,7 @@ class Tracklet:
         self.life_manager = life_manager.HitManager(configs, frame_index)
         # store the score for the latest bbox
         self.latest_score = bbox.s
+        self.index = bbox.index
     
     def predict(self, time_stamp=None, is_key_frame=True):
         """ in the prediction step, the motion model predicts the state of bbox
@@ -45,6 +46,7 @@ class Tracklet:
         """ update the state of the tracklet
         """
         self.latest_score = update_info.bbox.s
+        self.index = update_info.bbox.index
         is_key_frame = update_info.aux_info['is_key_frame']
         
         # only the direct association update the motion model
@@ -60,6 +62,7 @@ class Tracklet:
         """
         result = self.motion_model.get_state()
         result.s = self.latest_score
+        result.index = self.index
         return result
     
     def valid_output(self, frame_index):

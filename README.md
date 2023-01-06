@@ -1,73 +1,97 @@
-# SimpleTrack: Simple yet Effective 3D Multi-object Tracking
+# 3DTracking-simpletrack
 
-This is the repository for our paper [SimpleTrack: Understanding and Rethinking 3D Multi-object Tracking](https://arxiv.org/abs/2111.09621). We are still working on writing the documentations and cleaning up the code, but the following parts are sufficient for you to replicate the results in our paper. For more variants of the model, we have already moved all of our code onto the `dev` branch, so please feel free to check it out if you really need to delve deep recently. We will try our best to get everything ready as soon as possible.
-
-If you find our paper or code useful for you, please consider cite us by:
-```
-@article{pang2021simpletrack,
-  title={SimpleTrack: Understanding and Rethinking 3D Multi-object Tracking},
-  author={Pang, Ziqi and Li, Zhichao and Wang, Naiyan},
-  journal={arXiv preprint arXiv:2111.09621},
-  year={2021}
-}
-```
-
-<img src="docs/simpletrack_gif.gif">
-
-- [ ] Accelerating the code, make the IoU/GIoU computation parallel.
-- [ ] Add documentation for codebase.
+Lidar 3D object tracking with simpletrack algorithm. 
 
 ## Installation
+### Requirements
+The codes are tested in the following environment:
+* Linux (tested on Ubuntu 20.04)
+* Python 3.8.13
+* PyTorch 1.8.1+cu111
+* CUDA 11.1 or higher
 
-### Environment Requirements
+### Install
+* cd  current folder.
+* pip install -r requirements.txt
+* pip install -e ./
+  
+## Run the code
 
-`SimpleTrack` requires `python>=3.6` and the packages of `pip install -r requirements.txt`. For the experiments on Waymo Open Dataset, please install the devkit following the instructions at [waymo open dataset devkit](https://github.com/waymo-research/waymo-open-dataset).
+本代码依赖于检测模型的输出，需要先用PVRCNN++算法做3D目标检测。
 
-### Installation
+### 数据预处理
 
-We implement the `SimpleTrack` algorithm as a library `mot_3d`. Please run `pip install -e ./` to install it locally.
+* 将点云数据按片段做预处理，每一片段包含若干帧连续点云数据、每帧点云的车辆Pose以及每帧点云的时间戳信息。
+* 将检测输出按片段做预处理，每一片段包含若干帧点云连续点云的3D检测结果。
 
-## Demo and API Example
-
-### Demo
-
-We provide a demo based on the first sequence with ID `10203656353524179475_7625_000_7645_000` from the validation set of [Waymo Open Dataset](https://waymo.com/open/) and the detection from [CenterPoint](https://github.com/tianweiy/CenterPoint). (We are thankful and hope that we are not violating any terms here.)
-
-First, download the [demo_data](https://www.dropbox.com/s/m8vt7t7tqofaoq2/demo_data.zip?dl=0) and extract it locally. It contains the necessary information and is already preprocessed according to [our preprocessing programs](./docs/data_preprocess.md). To run the demo, please run the following command. It will provide interactive visualization with `matplotlib.pyplt`. Therefore, it is recommended to run this demo locally.
+### 推理示例
 
 ```bash
-python tools/demo.py \
-    --name demo \
-    --det_name cp \
-    --obj_type vehicle \
-    --config_path configs/waymo_configs/vc_kf_giou.yaml \
-    --data_folder ./demo_data/ \
-    --visualize
+cd tools/
+python main_zlidar.py --data_folder /mnt/data/zlidar/lidar-sample --result_folder /mnt/data/zlidar/lidar-sample/mot_results
+```
+  * 需要可视化时，用如下配置文件：
+```python
+    config_paths = ['../configs/waymo_configs/vc_kf_giou.yaml',
+                    '../configs/waymo_configs/pd_kf_giou.yaml',
+                    '../configs/waymo_configs/cc_kf_giou.yaml']
+```
+* 不做可视化时，用如下配置文件：
+```python
+    config_paths = ['../configs/waymo_configs/vc_kf_giou_nopc.yaml',
+                '../configs/waymo_configs/pd_kf_giou_nopc.yaml',
+                '../configs/waymo_configs/cc_kf_giou_nopc.yaml']
+```
+* 目录/mnt/data/zlidar/lidar-sample说明
+```python
+/mnt/data/zlidar/lidar-sample/
+├── detection                # 点云目标检测结果保存目录
+│   └── segment1.pkl         # segment1是段名，表示一段连续帧点云
+│                            # pkl文件包含一个字典，有三个keys['bboxes', 'types', 'names']
+│                            # ['bboxes'] 是一个列表，列表长度等于该段点云的帧数，
+│                            # ['bboxes'] 列表的每个元素：N*8 [x,y,z,yaw,l,w,h,score]矩阵
+│                             
+├── ego_info                 # 车辆位姿信息
+│   └── segment1.pkl         # pkl里的数据是列表，列表长度等于该段点云的帧数，每个元素是 4*4 矩阵
+│
+├── lidar_info               # lidar2ego的外参，读取点云数据时转到ego坐标系时用到
+│   └── segment1.pkl
+├── mot_results              # 目标跟踪结果文件夹
+│   └── segment1             # 段名
+│       ├── imgs             # 可视化时保存的图片目录
+│       │   ├── cyclist
+│       │   ├── pedestrian
+│       │   └── vehicle
+│       └── summary         # 结果数据目录
+│           ├── track_results.pkl   # 相比detection目录下的pkl数据，增加了key['ids']表示对象id
+│ 
+├── pc                      # 点云文件目录，可视化时需要用到
+│   └── segment1
+│       ├── n000001_2022-12-16-15-28-45-000076_Pandar128.pcd
+│       ├── n000001_2022-12-16-15-28-45-100081_Pandar128.pcd
+│       ├── ...
+└── ts_info                # 时间戳信息
+    └── segment1.pkl       # pkl里的数据是列表，列表长度等于该段点云的帧数
 ```
 
-An example output for the visualization is the following figure.
+### 相关数据卷
 
-<img width=70% src="docs/demo.png" >
+- clever/lidar-liu/lidar-sample.rar 存放着上述示例数据
 
-In the visualization, the red bounding boxes are the output tracking results with their IDs. The blue ones are the tracking results that are not output due to low confidence score. The green ones are the detection bounding boxes with scores. The black ones are the ground truth bounding boxes.
+### main_zlidar_v2.py 说明
 
-### API Example
+这个版本的跟踪算法，是先跟图像融合标注后，再跟踪。
 
-The most important function is `tracker.frame_mot()`. An object of `MOTModel` iteratively digests the information from each frame `FrameData` and infers the tracking result on each frame.
+dataloader 版本：./data_loader/zlidar_loader.py/class lidarLoaderV2.
 
-## Inference on Waymo Open Dataset and nuScenes
+### main_zlidar_v3.py 说明
 
-Refer to the documentation of [Waymo Open Dataset Inference](./docs/waymo.md) and [nuScenes Inference](./docs/nuScenes.md). **Important: please rigorously follow the config file path and instructions in the documentation to reproduce the results.**
+这个版本的跟踪算法，是先点云3框做标注，再跟图像融合。
 
-The detailed metrics and files are at [Dropbox Link](https://www.dropbox.com/sh/2zcpf7wyho7x21q/AABRtGP75KHghr0wyoVqzFFXa?dl=0), Waymo Open Dataset in [Dropbox link](https://www.dropbox.com/sh/u6o8dcwmzya04uk/AAAUsNvTt7ubXul9dx5Xnp4xa?dl=0), nuScenes in [Dropbox Link](https://www.dropbox.com/sh/8906exnes0u5e89/AAD0xLwW1nq_QiuUBaYDrQVna?dl=0).
+dataloader 版本：./data_loader/zlidar_loader.py/class lidarLoaderV3.
 
-For the metrics on test set, please refer to our paper or the leaderboard.
+### 备注
 
-## Related Documentations
+- main_zlidar_v2.py和main_zlidar_v3.py需要跟融合标注程序（lidar_img_fusion_v2）配合使用，其输入ts_info、ego_info和detection都已打包在同一个文件，同时做完跟踪后，需要用lidar_img_fusion_v2的后处理代码做后处理。
+- 运行示例见上一层目录的readme。
 
-To enable the better usages of our `mot_3d` library, we provide a list useful documentations, and will add more in the future.
-
-* [Read and Use the Configurations](./docs/config.md). We explain how to specify the behaviors of trackers in this documentation, such as two-stage association, the thresholds for association, etc.
-* [Format of Output](./docs/output_format.md). We explain the output format for the APIs in `SimpleTrack`, so that you may directly use the functions provided. (in progress)
-* Visualization with `mot_3d` (in progress)
-* Structure of `mot_3d` (in progress)
