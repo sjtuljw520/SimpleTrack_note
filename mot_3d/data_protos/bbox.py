@@ -3,7 +3,6 @@
 import numpy as np
 from copy import deepcopy
 
-
 class BBox:
     def __init__(self, x=None, y=None, z=None, h=None, w=None, l=None, o=None):
         self.x = x      # center x
@@ -14,6 +13,7 @@ class BBox:
         self.l = l      # length
         self.o = o      # orientation
         self.s = None   # detection score
+        self.index = None
     
     def __str__(self):
         return 'x: {}, y: {}, z: {}, heading: {}, length: {}, width: {}, height: {}, score: {}'.format(
@@ -29,8 +29,10 @@ class BBox:
     def bbox2array(cls, bbox):
         if bbox.s is None:
             return np.array([bbox.x, bbox.y, bbox.z, bbox.o, bbox.l, bbox.w, bbox.h])
-        else:
+        elif bbox.index is None:
             return np.array([bbox.x, bbox.y, bbox.z, bbox.o, bbox.l, bbox.w, bbox.h, bbox.s])
+        else:
+            return np.array([bbox.x, bbox.y, bbox.z, bbox.o, bbox.l, bbox.w, bbox.h, bbox.s, bbox.index])
 
     @classmethod
     def array2bbox(cls, data):
@@ -38,6 +40,8 @@ class BBox:
         bbox.x, bbox.y, bbox.z, bbox.o, bbox.l, bbox.w, bbox.h = data[:7]
         if len(data) == 8:
             bbox.s = data[-1]
+        if len(data) == 9:
+            bbox.s, bbox.index =  data[-2:]
         return bbox
     
     @classmethod

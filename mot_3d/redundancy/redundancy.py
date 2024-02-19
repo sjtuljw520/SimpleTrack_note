@@ -14,6 +14,7 @@ class RedundancyModule:
         self.det_score = configs['redundancy']['det_score_threshold'][self.asso]
         self.det_threshold = configs['redundancy']['det_dist_threshold'][self.asso]
         self.motion_model_type = configs['running']['motion_model']
+        self.det_score_run = configs['running']['score_threshold']
     
     def infer(self, trk: Tracklet, input_data: FrameData, time_lag=None):
         if self.mode == 'bbox':
@@ -36,7 +37,7 @@ class RedundancyModule:
         # associate to low-score detections
         dists = list()
         dets = input_data.dets
-        related_indexes = [i for i, det in enumerate(dets) if det.s > self.det_score]
+        related_indexes = [i for i, det in enumerate(dets) if det.s > self.det_score and det.s < self.det_score_run]
         candidate_dets = [dets[i] for i in related_indexes]
 
         # association
