@@ -150,3 +150,4 @@ if __name__ == '__main__':
         main(args.name, args.obj_type, args.config_path, args.data_folder, det_data_folder, result_folder, 
             args.gt_folder, args.start_frame, 0, 1)
     
+## exp
